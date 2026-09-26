@@ -1,0 +1,35 @@
+name: Tests
+
+# Runs on GitHub-hosted runners only. This repo must never have a self-hosted
+# runner: it is public, and a fork's pull request could run code on it.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tap:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-26, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: The tap installs from this checkout
+        run: brew tap evanscastonguay/tap "$GITHUB_WORKSPACE"
+      - name: Every cask passes style and audit
+        run: |
+          set -euo pipefail
+          casks=$(find Casks -name '*.rb' | wc -l | tr -d ' ')
+          echo "casks: $casks"
+          if [ "$casks" -gt 0 ]; then
+            brew style --cask Casks/*.rb
+            brew audit --tap=evanscastonguay/tap
+          fi
+      - name: The designated-requirement fixture is present
+        run: grep -q '5GB46V9555' ci/expected-dr.txt
