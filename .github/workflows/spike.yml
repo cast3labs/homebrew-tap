@@ -1,0 +1,29 @@
+name: Spike F4
+
+# Throwaway spike on branch spike-f4, never merged. Each job copies one cask
+# variant from spike/ into a local tap on a GitHub-hosted runner and measures
+# it with spike/probe.sh. Hosted runners only: this repo is public and must
+# never have a self-hosted runner.
+on:
+  push:
+    branches: [spike-f4]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-26, macos-15]
+        variant: [v1, v2, v3, v4, adopt, quit, tilde]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      HOMEBREW_GITHUB_API_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Probe ${{ matrix.variant }}
+        run: bash spike/probe.sh "${{ matrix.variant }}"
