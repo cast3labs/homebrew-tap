@@ -32,7 +32,12 @@ fails rather than leave you an app that will not open.
 
 ```bash
 brew upgrade --cask evanscastonguay/tap/omac
+omac quit; sleep 1   # the old version keeps running until you restart it
+open ~/Applications/Omac.app
 ```
+
+Homebrew replaces the app but neither stops the running copy nor starts the
+new one, so restart Omac yourself.
 
 ## Uninstall
 
@@ -60,8 +65,10 @@ installer's link: `rm ~/.local/bin/omac`.
 
 ## What CI checks
 
-On every pull request and every push to `main`, on GitHub-hosted macOS 26 and
-macOS 15 runners with the latest Homebrew (`.github/workflows/tests.yml`):
+On every pull request and every push to `main`, on GitHub-hosted macOS 26,
+macOS 15 and macOS 14 runners with the latest Homebrew
+(`.github/workflows/tests.yml`; Homebrew warns that macOS 14 is unsupported,
+but the cask installs and every check below runs there too):
 
 - `brew style` and `brew audit --cask --strict --online` pass, and `brew
   livecheck` finds the latest release;
@@ -75,7 +82,9 @@ macOS 15 runners with the latest Homebrew (`.github/workflows/tests.yml`):
   leaves nothing behind (`ci/check-omac.sh`).
 
 These are pre-merge checks: `brew install` itself does not compare the
-signature against `ci/expected-dr.txt`.
+signature against `ci/expected-dr.txt`. `ci/check-omac.sh` refuses to run
+unless `GITHUB_ACTIONS` or `CI` is `true`: it stops Omac and deletes
+`~/.config/omac`, so never run it on your own Mac.
 
 Once a day, `.github/workflows/livecheck.yml` opens an issue if the cask has
 fallen behind the latest Omac release.

@@ -17,9 +17,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Homebrew 7 supports macOS 15 and later; the cask allows 14 (Sonoma),
-        # which no Homebrew-supported runner covers.
-        os: [macos-26, macos-15]
+        # The cask allows macOS 14 (Sonoma). Homebrew 7 still runs there, with
+        # a warning that the version is unsupported, so 14 is tested too.
+        os: [macos-26, macos-15, macos-14]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     env:
@@ -66,6 +66,16 @@ jobs:
       - name: livecheck finds the latest release
         if: hashFiles('Casks/omac.rb') != ''
         run: brew livecheck --cask evanscastonguay/tap/omac
+
+      - name: check-omac.sh refuses to run off CI
+        # It kills Omac and deletes its config, so a maintainer's Mac is off limits.
+        run: |
+          set -euo pipefail
+          rc=0
+          out="$(env -u GITHUB_ACTIONS -u CI bash ci/check-omac.sh 2>&1)" || rc=$?
+          echo "$out"
+          [ "$rc" = 2 ] || { echo "::error::expected exit 2 off CI, got $rc"; exit 1; }
+          grep -q 'refusing to run' <<<"$out"
 
       - name: omac installs, launches, and uninstalls cleanly
         if: hashFiles('Casks/omac.rb') != ''

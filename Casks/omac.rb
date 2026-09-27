@@ -57,6 +57,9 @@ cask "omac" do
     To start Omac when you log in:
       omac login on
 
+    After `brew upgrade`, the old version keeps running. Restart it with:
+      omac quit; sleep 1; open ~/Applications/Omac.app
+
     Before uninstalling, turn that off:
       omac login off
     Homebrew's uninstall cannot reach the running app to do it for you.

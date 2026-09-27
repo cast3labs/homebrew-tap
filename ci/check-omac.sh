@@ -7,8 +7,20 @@
 # Usage: ci/check-omac.sh [cask]        (default: evanscastonguay/tap/omac)
 #
 # Runs only on a throwaway runner: it installs, launches, kills and zaps Omac.
+# It refuses to start unless GITHUB_ACTIONS=true or CI=true (exit 2).
 # Every check prints "ok: ..." or "FAIL: ...". Exit 1 if any check failed.
 set -uo pipefail
+
+if [ "${GITHUB_ACTIONS:-}" != true ] && [ "${CI:-}" != true ]; then
+  cat >&2 <<'EOF'
+check-omac.sh: refusing to run: neither GITHUB_ACTIONS nor CI is "true".
+It is meant for a throwaway CI runner. It stops any running Omac, deletes
+~/.config/omac (your omac.toml) and ~/.local/state/omac, and uninstalls Omac
+with --zap. Running it on your own Mac would lose your config and your
+window manager.
+EOF
+  exit 2
+fi
 
 cask="${1:-evanscastonguay/tap/omac}"
 root="$(cd "$(dirname "$0")/.." && pwd)"
