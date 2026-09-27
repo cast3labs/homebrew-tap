@@ -2,6 +2,7 @@ name: Tests
 
 # Runs on GitHub-hosted runners only. This repo must never have a self-hosted
 # runner: it is public, and a fork's pull request could run code on it.
+# Only GitHub-owned actions, pinned by commit SHA.
 on:
   push:
     branches: [main]
@@ -16,20 +17,56 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Homebrew 7 supports macOS 15 and later; the cask allows 14 (Sonoma),
+        # which no Homebrew-supported runner covers.
         os: [macos-26, macos-15]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
+      HOMEBREW_NO_ENV_HINTS: 1
+      # Read-only; lifts the GitHub API rate limit for audit and livecheck.
+      HOMEBREW_GITHUB_API_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: The designated-requirement fixture is present
+        run: grep -q '5GB46V9555' ci/expected-dr.txt
+
+      - name: Homebrew is current
+        # Runner images lag behind; users run the latest Homebrew.
+        run: |
+          brew update --quiet
+          brew --version | head -1
+          sw_vers
+
       - name: The tap installs from this checkout
-        run: brew tap evanscastonguay/tap "$GITHUB_WORKSPACE"
+        run: |
+          set -euo pipefail
+          brew tap evanscastonguay/tap "$GITHUB_WORKSPACE"
+          # The tap must hold exactly this commit's casks.
+          diff -r Casks "$(brew --repository evanscastonguay/tap)/Casks"
+
       - name: Every cask passes style and audit
         run: |
           set -euo pipefail
           casks=$(find Casks -name '*.rb' | wc -l | tr -d ' ')
           echo "casks: $casks"
+          for f in Casks/*.rb; do
+            [ -e "$f" ] || continue
+            token="evanscastonguay/tap/$(basename "$f" .rb)"
+            brew style --cask "$token"
+            brew audit --cask --strict --online "$token"
+          done
           if [ "$casks" -gt 0 ]; then
-            brew style --cask Casks/*.rb
             brew audit --tap=evanscastonguay/tap
           fi
-      - name: The designated-requirement fixture is present
-        run: grep -q '5GB46V9555' ci/expected-dr.txt
+
+      - name: livecheck finds the latest release
+        if: hashFiles('Casks/omac.rb') != ''
+        run: brew livecheck --cask evanscastonguay/tap/omac
+
+      - name: omac installs, launches, and uninstalls cleanly
+        if: hashFiles('Casks/omac.rb') != ''
+        run: bash ci/check-omac.sh evanscastonguay/tap/omac
