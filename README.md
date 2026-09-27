@@ -2,26 +2,92 @@
 
 Homebrew casks for [Omac](https://github.com/evanscastonguay/omac), a tiling
 window manager for macOS: Omarchy's window keys on your Mac, one app, nothing
-else to install.
+else to install. Apple silicon, macOS 14 or later.
 
-**Omac is not in this tap yet.** Until it is, install it with one command:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/evanscastonguay/omac/main/install.sh | bash
-```
-
-Once the cask lands, this will work:
+## Install
 
 ```bash
 brew install --cask evanscastonguay/tap/omac
 ```
 
-`ci/expected-dr.txt` is the app's designated requirement — the signing identity
-macOS ties the Accessibility permission to. Today the tap's CI only checks that
-this file is present and names Omac's team. Once the cask lands, CI will also
-download each release the cask points at, check its checksum, and compare its
-signature against this file before the cask can be merged. It is a pre-merge
-check: `brew install` itself does not run it.
+Use the full name. Homebrew 7 trusts a tap's cask when you name it this way;
+`brew tap` followed by `brew install --cask omac` is refused.
+
+The cask puts `Omac.app` in `~/Applications` and `omac` on your `PATH`. It does
+not start Omac. Start it, then allow it in System Settings > Privacy & Security
+> Accessibility:
+
+```bash
+open ~/Applications/Omac.app
+omac status          # accessibility and tap should both be true
+omac login on        # optional: start Omac when you log in
+```
+
+Omac is signed with its Developer ID but not notarized. Homebrew quarantines
+every download, and Gatekeeper would refuse to open it, so the cask clears the
+quarantine flag from the app once it is installed. If it cannot, the install
+fails rather than leave you an app that will not open.
+
+## Update
+
+```bash
+brew upgrade --cask evanscastonguay/tap/omac
+omac quit; sleep 1   # the old version keeps running until you restart it
+open ~/Applications/Omac.app
+```
+
+Homebrew replaces the app but neither stops the running copy nor starts the
+new one, so restart Omac yourself.
+
+## Uninstall
+
+```bash
+omac login off       # first, if you turned it on
+brew uninstall --cask --zap evanscastonguay/tap/omac
+```
+
+Homebrew's uninstall cannot reach the running app to turn launch at login off
+for you. `--zap` also removes `~/.config/omac` (your `omac.toml`),
+`~/.local/state/omac`, and Omac's preferences and caches in `~/Library`; leave
+it out to keep them.
+
+## Coming from the curl installer
+
+The one-line installer also uses `~/Applications/Omac.app`. To hand that copy
+to Homebrew, upgrade it to the version this cask ships, then:
+
+```bash
+brew install --cask --adopt evanscastonguay/tap/omac
+```
+
+`--adopt` refuses a copy of a different version. Afterwards, remove the
+installer's link: `rm ~/.local/bin/omac`.
+
+## What CI checks
+
+On every pull request and every push to `main`, on GitHub-hosted macOS 26,
+macOS 15 and macOS 14 runners with the latest Homebrew
+(`.github/workflows/tests.yml`; Homebrew warns that macOS 14 is unsupported,
+but the cask installs and every check below runs there too):
+
+- `brew style` and `brew audit --cask --strict --online` pass, and `brew
+  livecheck` finds the latest release;
+- the cask's `sha256` equals the release's own `Omac-arm64.zip.sha256`;
+- after `brew install`, no file in the app carries the quarantine flag, and its
+  signature satisfies `ci/expected-dr.txt`, the designated requirement macOS ties
+  the Accessibility permission to;
+- the install does not start Omac or turn on launch at login; `open` starts it,
+  and `omac version` and `omac spec-path` answer;
+- `brew uninstall --cask --zap` stops Omac without an Automation prompt and
+  leaves nothing behind (`ci/check-omac.sh`).
+
+These are pre-merge checks: `brew install` itself does not compare the
+signature against `ci/expected-dr.txt`. `ci/check-omac.sh` refuses to run
+unless `GITHUB_ACTIONS` or `CI` is `true`: it stops Omac and deletes
+`~/.config/omac`, so never run it on your own Mac.
+
+Once a day, `.github/workflows/livecheck.yml` opens an issue if the cask has
+fallen behind the latest Omac release.
 
 Omac is an independent, unofficial project. It is not affiliated with or
 endorsed by Omarchy or its authors. MIT License.
