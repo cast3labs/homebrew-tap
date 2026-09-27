@@ -164,22 +164,43 @@ endgroup
 
 group "Launch and CLI"
 pkill -x Omac 2>/dev/null; sleep 1
+rm -rf "$HOME/.config/omac" "$HOME/.local/state/omac"
 # 142 = still waiting after 60 s (SIGALRM): `open` blocks on a Gatekeeper dialog.
 t0=$(date +%s); lim 60 open "$app"; rc=$?; t1=$(date +%s)
 row open_rc "$rc"
 row open_seconds "$((t1 - t0))"
-pid="$(wait_for_omac 15 || true)"
+wait_for_omac 15 >/dev/null
 sleep 3
-row pgrep_Omac "$(pgrep -x Omac | head -1 || true)"
-if [ -z "$(pgrep -x Omac)" ]; then
+pid="$(pgrep -x Omac | head -1 || true)"
+row pgrep_Omac "${pid:-none}"
+# A pid alone is not proof: a launch held by Gatekeeper leaves a process that
+# never runs. Omac's first act is to create its state dir and CLI socket.
+[ -n "$pid" ] && row omac_ps_stat_etime "$(ps -o stat=,etime= -p "$pid" 2>&1)"
+row omac_socket "$([ -S "$HOME/.local/state/omac/omac.sock" ] && echo present || echo absent)"
+if [ "$rc" != 0 ] || [ -z "$pid" ]; then
   # Best effort: the text of the Gatekeeper dialog, if UI scripting is allowed here.
   row gatekeeper_dialog "$(lim 20 osascript -e 'tell application "System Events" to tell process "CoreServicesUIAgent" to get value of every static text of every window' 2>&1 | head -c 400)"
+  row syspolicyd_log "$(lim 90 /usr/bin/log show --last 3m --style compact --predicate 'process == "syspolicyd"' 2>/dev/null | grep -iE 'omac' | tail -3 | cut -c1-300)"
 fi
-[ -z "$(pgrep -x Omac)" ] && row syspolicyd_log "$(lim 90 /usr/bin/log show --last 3m --style compact --predicate 'process == "syspolicyd"' 2>/dev/null | grep -iE 'omac' | tail -3)"
 row cli_path "$(tl "$cli" | sed "s|^$(brew --prefix)|HOMEBREW_PREFIX|")"
 out="$(lim 30 "$cli" spec-path 2>&1)"; rc=$?
 row cli_spec_path_rc "$rc"
 row cli_spec_path_out "$(printf '%s' "$out" | sed "s|$HOME|~|g")"
+out="$(lim 15 "$cli" version 2>&1)"; rc=$?
+row cli_version_rc "$rc"
+row cli_version_out "$(printf '%s' "$out" | head -2)"
+# The job's own shell may be exempt from Gatekeeper (Developer Tools). Run the
+# same CLI from Terminal.app, as a user would, and read its exit code back.
+row devtools_tcc "$(sqlite3 "$HOME/Library/Application Support/com.apple.TCC/TCC.db" "select client||'='||auth_value from access where service='kTCCServiceDeveloperTool'" 2>&1 | tr '\n' ' ') system: $(sudo sqlite3 "/Library/Application Support/com.apple.TCC/TCC.db" "select client||'='||auth_value from access where service='kTCCServiceDeveloperTool'" 2>&1 | tr '\n' ' ')"
+row devtools_security "$(DevToolsSecurity -status 2>&1 | tr '\n' ' ')"
+cmdf="$tmp/cli-in-terminal.command"; rcf="$tmp/cli-in-terminal.rc"; rm -f "$rcf"
+printf '#!/bin/bash\n"%s" spec-path > "%s.out" 2>&1; echo $? > "%s"\n' "$cli" "$rcf" "$rcf" > "$cmdf"
+chmod +x "$cmdf"
+lim 30 open -a Terminal "$cmdf"; row terminal_open_rc "$?"
+i=0; while [ ! -s "$rcf" ] && [ $i -lt 90 ]; do sleep 1; i=$((i + 1)); done
+row cli_in_terminal_rc "$(cat "$rcf" 2>/dev/null || echo "no exit code after ${i}s")"
+row cli_in_terminal_out "$(sed "s|$HOME|~|g" "$rcf.out" 2>/dev/null | head -2)"
+pkill -x Terminal 2>/dev/null
 endgroup
 
 # ── Uninstall and zap ────────────────────────────────────────────────────────
