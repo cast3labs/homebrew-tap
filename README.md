@@ -77,5 +77,8 @@ macOS 15 runners with the latest Homebrew (`.github/workflows/tests.yml`):
 These are pre-merge checks: `brew install` itself does not compare the
 signature against `ci/expected-dr.txt`.
 
+Once a day, `.github/workflows/livecheck.yml` opens an issue if the cask has
+fallen behind the latest Omac release.
+
 Omac is an independent, unofficial project. It is not affiliated with or
 endorsed by Omarchy or its authors. MIT License.
