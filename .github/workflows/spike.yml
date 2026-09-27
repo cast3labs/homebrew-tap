@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-26, macos-15]
-        variant: [v1, v2, v3, v4, adopt, quit, tilde]
+        variant: [v1, v2, v3, v4, adopt, quit, tilde, preflight]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     env:

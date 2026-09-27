@@ -4,11 +4,12 @@
 #
 #   ROW|<macOS version>|<variant>|<key>|<value>
 #
-# Usage: spike/probe.sh v1|v2|v3|v4|adopt|quit|tilde
+# Usage: spike/probe.sh v1|v2|v3|v4|adopt|quit|tilde|preflight
 #   v1..v4  the four variants in spike/v1..v4
 #   adopt   the curl one-liner first, then `brew install --adopt` with V4
 #   quit    V4 plus `uninstall quit:` (spike/extra/v4-quit), uninstalled while Omac runs
 #   tilde   V3 with a literal "~" in the step's args (spike/extra/v3-tilde)
+#   preflight  V4 plus `omac login off` as an uninstall step and `uninstall signal:`
 set -u
 
 variant="${1:?variant}"
@@ -56,6 +57,7 @@ case "$variant" in
   v4)    cask=v4;             app="$HOME/Applications/Omac.app" ;;
   adopt) cask=v4;             app="$HOME/Applications/Omac.app" ;;
   quit)  cask=extra/v4-quit;  app="$HOME/Applications/Omac.app" ;;
+  preflight) cask=extra/v4-preflight; app="$HOME/Applications/Omac.app" ;;
   tilde) cask=extra/v3-tilde; app="$HOME/Applications/Omac.app" ;;
   *) echo "unknown variant $variant" >&2; exit 2 ;;
 esac
@@ -112,6 +114,17 @@ if [ "$variant" = adopt ]; then
   endgroup
 fi
 
+# ── Homebrew 7 tap trust: a short name before the tap is trusted ─────────────
+if [ "$variant" = v4 ]; then
+  group "brew install --cask omac (short name, tap not yet trusted)"
+  lim 300 brew install --cask omac 2>&1 | tee "$tmp/short.log"; rc=${PIPESTATUS[0]}
+  row short_name_install_rc "$rc"
+  row short_name_install_msg "$(grep -iE 'trust|error|no cask' "$tmp/short.log" | head -3)"
+  if [ "$rc" = 0 ]; then pkill -x Omac 2>/dev/null; brew uninstall --cask omac >/dev/null 2>&1; fi
+  row trust_file "$(cat "$HOME/.homebrew/trust.json" 2>/dev/null || ls "${HOMEBREW_USER_CONFIG_HOME:-$HOME/.config/homebrew}" 2>&1 | head -3)"
+  endgroup
+fi
+
 # ── Install ──────────────────────────────────────────────────────────────────
 group "brew install"
 flags=""
@@ -132,7 +145,7 @@ fi
 
 # ── Quarantine, signature, launch, CLI ───────────────────────────────────────
 group "Quarantine and signature"
-case "$variant" in v4|adopt|quit) cli="$(brew --prefix)/bin/omac" ;; *) cli="$app/Contents/Helpers/omac" ;; esac
+case "$variant" in v4|adopt|quit|preflight) cli="$(brew --prefix)/bin/omac" ;; *) cli="$app/Contents/Helpers/omac" ;; esac
 row app_path "$(tl "$app")"
 row app_version "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist" 2>&1)"
 row quarantined_files "$(qcount "$app")"
@@ -236,6 +249,22 @@ if [ "$variant" = quit ]; then
 
   pkill -x Omac 2>/dev/null; sleep 1
   brew uninstall --cask --zap "$token" >/dev/null 2>&1; row cleanup_uninstall_rc "$?"
+elif [ "$variant" = preflight ]; then
+  group "uninstall_preflight_steps (omac login off) and uninstall signal:, Omac running"
+  pgrep -x Omac >/dev/null || { lim 60 open "$app"; wait_for_omac 15 >/dev/null; sleep 3; }
+  row login_on_outside_brew "$(lim 30 "$cli" login on 2>&1)"
+  row login_query_outside_brew "$(lim 30 "$cli" login 2>&1)"
+  row running_before_uninstall "$(pgrep -x Omac | head -1 || echo none)"
+  t0=$(date +%s)
+  lim 300 brew uninstall --cask --zap "$token" 2>&1 | tee "$tmp/uninstall.log"; rc=${PIPESTATUS[0]}
+  t1=$(date +%s)
+  row uninstall_zap_rc "$rc"
+  row uninstall_seconds "$((t1 - t0))"
+  row login_off_step_output "$(grep -iE 'launch at login|omac:|error|refused|socket|not running|Operation' "$tmp/uninstall.log" | head -4)"
+  row signal_lines "$(grep -iE 'signal|TERM' "$tmp/uninstall.log" | head -3)"
+  sleep 1
+  row running_after_uninstall "$(pgrep -x Omac | head -1 || echo none)"
+  endgroup
 else
   group "brew uninstall --cask --zap"
   pkill -x Omac 2>/dev/null; sleep 1
