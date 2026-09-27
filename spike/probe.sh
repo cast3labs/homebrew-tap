@@ -151,11 +151,18 @@ endgroup
 
 group "Launch and CLI"
 pkill -x Omac 2>/dev/null; sleep 1
-open "$app"; row open_rc "$?"
+# 142 = still waiting after 60 s (SIGALRM): `open` blocks on a Gatekeeper dialog.
+t0=$(date +%s); lim 60 open "$app"; rc=$?; t1=$(date +%s)
+row open_rc "$rc"
+row open_seconds "$((t1 - t0))"
 pid="$(wait_for_omac 15 || true)"
 sleep 3
 row pgrep_Omac "$(pgrep -x Omac | head -1 || true)"
-[ -z "$(pgrep -x Omac)" ] && row syspolicyd_log "$(/usr/bin/log show --last 2m --style compact --predicate 'process == "syspolicyd"' 2>/dev/null | grep -iE 'omac' | tail -3)"
+if [ -z "$(pgrep -x Omac)" ]; then
+  # Best effort: the text of the Gatekeeper dialog, if UI scripting is allowed here.
+  row gatekeeper_dialog "$(lim 20 osascript -e 'tell application "System Events" to tell process "CoreServicesUIAgent" to get value of every static text of every window' 2>&1 | head -c 400)"
+fi
+[ -z "$(pgrep -x Omac)" ] && row syspolicyd_log "$(lim 90 /usr/bin/log show --last 3m --style compact --predicate 'process == "syspolicyd"' 2>/dev/null | grep -iE 'omac' | tail -3)"
 row cli_path "$(tl "$cli" | sed "s|^$(brew --prefix)|HOMEBREW_PREFIX|")"
 out="$(lim 30 "$cli" spec-path 2>&1)"; rc=$?
 row cli_spec_path_rc "$rc"
@@ -165,41 +172,70 @@ endgroup
 # ── Uninstall and zap ────────────────────────────────────────────────────────
 row zap_dirs_before "$(for d in "$HOME/.config/omac" "$HOME/.local/state/omac"; do [ -e "$d" ] && printf '%s ' "$(tl "$d")"; done)"
 if [ "$variant" = quit ]; then
-  group "uninstall quit: with Omac running"
-  row tcc_user_appleevents_before "$(sqlite3 "$HOME/Library/Application Support/com.apple.TCC/TCC.db" "select client||'>'||indirect_object_identifier||'='||auth_value from access where service='kTCCServiceAppleEvents'" 2>&1 | tr '\n' ' ')"
-  row running_before_uninstall "$(pgrep -x Omac | head -1 || echo none)"
-  sudo /usr/bin/log stream --level debug --style compact --predicate 'subsystem == "com.apple.TCC"' > "$tmp/tcc.log" 2>&1 &
-  sleep 3
-  t0=$(date +%s)
-  lim 300 brew uninstall --cask --zap "$token" 2>&1 | tee "$tmp/uninstall.log"; rc=${PIPESTATUS[0]}
-  t1=$(date +%s)
-  sleep 2
-  sudo pkill -f "log stream --level debug" 2>/dev/null
-  row uninstall_zap_rc "$rc"
-  row uninstall_seconds "$((t1 - t0))"
-  row uninstall_quit_lines "$(grep -iE 'quit|GUI|Automation' "$tmp/uninstall.log" | head -4)"
-  row running_after_uninstall "$(pgrep -x Omac | head -1 || echo none)"
-  row tcc_appleevents_log "$(grep -E 'kTCCServiceAppleEvents|AUTHREQ_RESULT|AUTHREQ_PROMPTING|PROMPT' "$tmp/tcc.log" | grep -viE 'systemevents' | head -8)"
-  row tcc_log_lines "$(wc -l < "$tmp/tcc.log" | tr -d ' ')"
+  tccdb() {   # $1 = user|system
+    local db="$HOME/Library/Application Support/com.apple.TCC/TCC.db" pre=""
+    [ "$1" = system ] && { db="/Library/Application Support/com.apple.TCC/TCC.db"; pre="sudo"; }
+    $pre sqlite3 "$db" "select client||'>'||ifnull(indirect_object_identifier,'')||'='||auth_value||'/'||auth_reason from access where service='kTCCServiceAppleEvents'" 2>&1 | tr '\n' ' '
+  }
+  tcc_start() { sudo /usr/bin/log stream --level debug --style compact --predicate 'subsystem == "com.apple.TCC"' > "$tmp/tcc-$1.log" 2>&1 & sleep 3; }
+  tcc_stop() {
+    sleep 2; sudo pkill -f "log stream --level debug" 2>/dev/null; sleep 1
+    echo "--- TCC AppleEvents lines ($1) ---"
+    grep -E 'AppleEvents|AUTHREQ_RESULT|PROMPT' "$tmp/tcc-$1.log" | cut -c1-420 | head -40
+    row "tcc_prompting_lines_$1" "$(grep -cE 'AUTHREQ_PROMPTING|promptWithUser|Prompting' "$tmp/tcc-$1.log")"
+    row "tcc_appleevents_results_$1" "$(grep -A1 -E 'service=kTCCServiceAppleEvents' "$tmp/tcc-$1.log" | grep -oE 'authValue=[0-9]+, authReason=[0-9]+' | sort | uniq -c | tr '\n' ' ')"
+  }
+  # brew's quit (via `uninstall quit:`), then the same Apple Event sent raw.
+  quit_round() {   # $1 = label
+    local label="$1" t0 t1 rc out
+    [ -d "$app" ] || brew install --cask "$token" >/dev/null 2>&1
+    pgrep -x Omac >/dev/null || { lim 60 open "$app"; wait_for_omac 15 >/dev/null; sleep 2; }
+    row "running_before_brew_quit_$label" "$(pgrep -x Omac | head -1 || echo none)"
+    tcc_start "brew-$label"
+    t0=$(date +%s)
+    lim 300 brew uninstall --cask --zap "$token" 2>&1 | tee "$tmp/uninstall-$label.log"; rc=${PIPESTATUS[0]}
+    t1=$(date +%s)
+    tcc_stop "brew-$label"
+    row "brew_uninstall_rc_$label" "$rc"
+    row "brew_uninstall_seconds_$label" "$((t1 - t0))"
+    row "brew_quit_lines_$label" "$(grep -iE 'quit|GUI|Automation' "$tmp/uninstall-$label.log" | head -4)"
+    sleep 1
+    row "running_after_brew_quit_$label" "$(pgrep -x Omac | head -1 || echo none)"
+
+    # The raw Apple Event, timed: an error means "denied", a long wait means a
+    # consent prompt that nobody can answer on a runner.
+    pkill -x Omac 2>/dev/null; sleep 1
+    brew install --cask "$token" >/dev/null 2>&1
+    lim 60 open "$app"; wait_for_omac 15 >/dev/null; sleep 2
+    tcc_start "raw-$label"
+    t0=$(date +%s)
+    out="$(lim 120 osascript -l JavaScript -e "Application('$bid').quit()" 2>&1)"; rc=$?
+    t1=$(date +%s)
+    tcc_stop "raw-$label"
+    row "raw_quit_rc_$label" "$rc"
+    row "raw_quit_seconds_$label" "$((t1 - t0))"
+    row "raw_quit_out_$label" "$out"
+    sleep 1
+    row "running_after_raw_quit_$label" "$(pgrep -x Omac | head -1 || echo none)"
+  }
+
+  group "uninstall quit: with the runner's own TCC grants"
+  row tcc_user_appleevents "$(tccdb user)"
+  row tcc_system_appleevents "$(tccdb system)"
+  quit_round runner
   endgroup
 
-  # The raw Apple Event Homebrew sends, timed on its own: an error means
-  # "denied", a long wait means a consent prompt nobody can answer.
-  group "raw JXA quit, timed"
-  brew install --cask "$token" >/dev/null 2>&1
-  open "$app"; wait_for_omac 15 >/dev/null
-  sleep 2
-  t0=$(date +%s)
-  out="$(lim 120 osascript -l JavaScript -e "Application('$bid').quit()" 2>&1)"; rc=$?
-  t1=$(date +%s)
-  row raw_quit_rc "$rc"
-  row raw_quit_seconds "$((t1 - t0))"
-  row raw_quit_out "$out"
-  sleep 2
-  row running_after_raw_quit "$(pgrep -x Omac | head -1 || echo none)"
+  # A user's Mac has none of the runner's pre-granted Automation entries.
+  # Clear them, and ask again.
+  group "uninstall quit: after tccutil reset AppleEvents"
+  tccutil reset AppleEvents; row tccutil_reset_rc "$?"
+  row tcc_user_appleevents_after_reset "$(tccdb user)"
+  row tcc_system_appleevents_after_reset "$(tccdb system)"
+  quit_round reset
+  endgroup
+
   pkill -x Omac 2>/dev/null; sleep 1
   brew uninstall --cask --zap "$token" >/dev/null 2>&1; row cleanup_uninstall_rc "$?"
-  endgroup
 else
   group "brew uninstall --cask --zap"
   pkill -x Omac 2>/dev/null; sleep 1
