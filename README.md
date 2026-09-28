@@ -1,7 +1,7 @@
 # evanscastonguay/homebrew-tap
 
 Homebrew casks for [Omac](https://github.com/evanscastonguay/omac), a tiling
-window manager for macOS: Omarchy's window keys on your Mac, one app, nothing
+window manager for macOS that works with Omarchy's keybindings: one app, nothing
 else to install. Apple silicon, macOS 14 or later.
 
 ## Install
@@ -90,4 +90,6 @@ Once a day, `.github/workflows/livecheck.yml` opens an issue if the cask has
 fallen behind the latest Omac release.
 
 Omac is an independent, unofficial project. It is not affiliated with or
-endorsed by Omarchy or its authors. MIT License.
+endorsed by Omarchy, its creators, 37signals LLC or the Omacom Foundation.
+Omarchy and the Omarchy trademark belong to 37signals LLC and the creators of Omarchy.
+MIT License.
