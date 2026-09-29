@@ -107,19 +107,16 @@ else
 fi
 endgroup
 
-group "Quarantine and signature"
-lines="$(xattr -r -p com.apple.quarantine "$app" 2>/dev/null | wc -l | tr -d ' ')"
-count=0 total=0
-while IFS= read -r -d '' f; do
-  total=$((total + 1))
-  xattr -s -p com.apple.quarantine "$f" >/dev/null 2>&1 && count=$((count + 1))
-done < <(find "$app" -print0)
-echo "quarantined files: $count of $total (xattr -r -p lines: $lines)"
-if [ "$lines" = 0 ] && [ "$count" = 0 ]; then
-  ok "no quarantine xattr"
+group "Notarization and signature"
+# Since 1.4.8 the app is notarized and stapled: Gatekeeper accepts a quarantined
+# copy on its own, so the cask leaves Homebrew's quarantine flag alone (the
+# first open asks once; the user clicks Open). Assert the ticket, not the flag.
+if spctl -a -vvv -t exec "$app" 2>&1 | grep -q 'source=Notarized Developer ID'; then
+  ok "spctl: source=Notarized Developer ID"
 else
-  fail "quarantine is still set on $count of $total files"
+  fail "spctl does not accept the app as notarized: $(spctl -a -vvv -t exec "$app" 2>&1 | tr '\n' ' ')"
 fi
+if xcrun stapler validate "$app" >/dev/null 2>&1; then ok "stapler validate: the ticket is stapled"; else fail "stapler validate failed"; fi
 codesign -d -r- "$app" 2>/dev/null > "$tmp/dr.txt"
 if diff "$tmp/dr.txt" "$root/ci/expected-dr.txt"; then
   ok "designated requirement matches ci/expected-dr.txt"
@@ -127,7 +124,13 @@ else
   fail "designated requirement differs from ci/expected-dr.txt"
 fi
 if codesign --verify --deep --strict "$app"; then ok "codesign --verify --deep --strict"; else fail "codesign --verify --deep --strict"; fi
-echo "spctl --assess (information only; Omac is not notarized): $(spctl --assess -vv --type execute "$app" 2>&1 | tr '\n' ' ')"
+# N13: nothing shipped in the tap may say Omac is not notarized any more.
+if grep -niE 'not notarized|open anyway|unnotarized|could not verify|cannot verify' "$root/Casks/omac.rb" "$root/README.md"; then
+  fail "a 'not notarized' phrase survives in the cask or the README"
+else
+  ok "no 'not notarized' phrase in the cask or the README"
+fi
+echo "spctl --assess: $(spctl --assess -vv --type execute "$app" 2>&1 | tr '\n' ' ')"
 endgroup
 
 # ── Launch it, as a user would, then use the command ─────────────────────────

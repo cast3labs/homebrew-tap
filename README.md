@@ -23,10 +23,10 @@ omac status          # accessibility and tap should both be true
 omac login on        # optional: start Omac when you log in
 ```
 
-Omac is signed with its Developer ID but not notarized. Homebrew quarantines
-every download, and Gatekeeper would refuse to open it, so the cask clears the
-quarantine flag from the app once it is installed. If it cannot, the install
-fails rather than leave you an app that will not open.
+Omac is signed with its Developer ID and, since 1.4.8, notarized by Apple, so
+Gatekeeper opens it and the cask leaves Homebrew's quarantine flag alone. The
+first time you open it, macOS asks once whether to open an app downloaded from
+the internet — click **Open**.
 
 ## Update
 
@@ -35,6 +35,9 @@ brew upgrade --cask evanscastonguay/tap/omac
 omac quit; sleep 1   # the old version keeps running until you restart it
 open ~/Applications/Omac.app
 ```
+
+Every way to install, update, uninstall and switch (curl, this tap, the download), side by side:
+[the install matrix](https://github.com/evanscastonguay/omac#every-way-side-by-side).
 
 Homebrew replaces the app but neither stops the running copy nor starts the
 new one, so restart Omac yourself.
@@ -73,7 +76,8 @@ but the cask installs and every check below runs there too):
 - `brew style` and `brew audit --cask --strict --online` pass, and `brew
   livecheck` finds the latest release;
 - the cask's `sha256` equals the release's own `Omac-arm64.zip.sha256`;
-- after `brew install`, no file in the app carries the quarantine flag, and its
+- after `brew install`, Gatekeeper accepts the app as notarized
+  (`source=Notarized Developer ID`, the ticket stapled), and its
   signature satisfies `ci/expected-dr.txt`, the designated requirement macOS ties
   the Accessibility permission to;
 - the install does not start Omac or turn on launch at login; `open` starts it,
