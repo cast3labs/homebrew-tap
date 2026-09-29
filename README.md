@@ -92,4 +92,4 @@ fallen behind the latest Omac release.
 Omac is an independent, unofficial project. It is not affiliated with or
 endorsed by Omarchy, its creators, 37signals LLC or the Omacom Foundation.
 Omarchy and the Omarchy trademark belong to 37signals LLC and the creators of Omarchy.
-MIT License.
+From 1.4.8, Omac is free to use under its licence terms, [EULA.fr.md](https://github.com/evanscastonguay/omac/blob/main/EULA.fr.md) (français) / [EULA.md](https://github.com/evanscastonguay/omac/blob/main/EULA.md); versions 1.4.5–1.4.7 stay MIT.
