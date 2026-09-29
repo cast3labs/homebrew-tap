@@ -1,6 +1,6 @@
 cask "omac" do
-  version "1.4.7"
-  sha256 "a064aeee7f13f0a23207b119a05032c1cd0100f915ceb6ce797e0386ede1d92e"
+  version "1.4.8"
+  sha256 "0870b106644494925c4e947e00c0c07f5f8401a397a3cebb3a3d226cc87dfef9"
 
   url "https://github.com/evanscastonguay/omac/releases/download/v#{version}/Omac-arm64.zip"
   name "Omac"
