@@ -107,19 +107,16 @@ else
 fi
 endgroup
 
-group "Quarantine and signature"
-lines="$(xattr -r -p com.apple.quarantine "$app" 2>/dev/null | wc -l | tr -d ' ')"
-count=0 total=0
-while IFS= read -r -d '' f; do
-  total=$((total + 1))
-  xattr -s -p com.apple.quarantine "$f" >/dev/null 2>&1 && count=$((count + 1))
-done < <(find "$app" -print0)
-echo "quarantined files: $count of $total (xattr -r -p lines: $lines)"
-if [ "$lines" = 0 ] && [ "$count" = 0 ]; then
-  ok "no quarantine xattr"
+group "Notarization and signature"
+# Since 1.4.8 the app is notarized and stapled: Gatekeeper accepts a quarantined
+# copy on its own, so the cask leaves Homebrew's quarantine flag alone (the
+# first open asks once; the user clicks Open). Assert the ticket, not the flag.
+if spctl -a -vvv -t exec "$app" 2>&1 | grep -q 'source=Notarized Developer ID'; then
+  ok "spctl: source=Notarized Developer ID"
 else
-  fail "quarantine is still set on $count of $total files"
+  fail "spctl does not accept the app as notarized: $(spctl -a -vvv -t exec "$app" 2>&1 | tr '\n' ' ')"
 fi
+if xcrun stapler validate "$app" >/dev/null 2>&1; then ok "stapler validate: the ticket is stapled"; else fail "stapler validate failed"; fi
 codesign -d -r- "$app" 2>/dev/null > "$tmp/dr.txt"
 if diff "$tmp/dr.txt" "$root/ci/expected-dr.txt"; then
   ok "designated requirement matches ci/expected-dr.txt"
@@ -127,13 +124,27 @@ else
   fail "designated requirement differs from ci/expected-dr.txt"
 fi
 if codesign --verify --deep --strict "$app"; then ok "codesign --verify --deep --strict"; else fail "codesign --verify --deep --strict"; fi
-echo "spctl --assess (information only; Omac is not notarized): $(spctl --assess -vv --type execute "$app" 2>&1 | tr '\n' ' ')"
+# N13: nothing shipped in the tap may say Omac is not notarized any more.
+if grep -niE 'not notarized|open anyway|unnotarized|could not verify|cannot verify' "$root/Casks/omac.rb" "$root/README.md"; then
+  fail "a 'not notarized' phrase survives in the cask or the README"
+else
+  ok "no 'not notarized' phrase in the cask or the README"
+fi
+echo "spctl --assess: $(spctl --assess -vv --type execute "$app" 2>&1 | tr '\n' ' ')"
 endgroup
 
 # ── Launch it, as a user would, then use the command ─────────────────────────
 group "Launch"
 rm -rf "$HOME/.config/omac" "$HOME/.local/state/omac"
-# `open` never returns while Gatekeeper holds a quarantined app (142 = timed out).
+# Measured 2026-09-29 on 1.4.8 (run 36569288345, macOS 14/15/26): with the ticket
+# stapled, Gatekeeper still shows its one-time "downloaded from the internet"
+# confirmation on the first open of a quarantined copy, and a runner has no one
+# to click Open, so `open` waits until it times out (142). A user clicks Open
+# once; here the flag is cleared instead, only after the assertions above
+# proved the copy notarized, so the launch measures Omac and not the dialog.
+before="$(xattr -p com.apple.quarantine "$app" 2>/dev/null || echo none)"
+echo "quarantine flag before the launch: $before (CI clears it; a user clicks Open once)"
+xattr -dr com.apple.quarantine "$app" 2>/dev/null || true
 lim 60 open "$app"; rc=$?
 if [ "$rc" = 0 ]; then ok "open ~/Applications/Omac.app"; else fail "open exited $rc (142: still waiting on Gatekeeper after 60 s)"; fi
 wait_until 20 socket_present >/dev/null

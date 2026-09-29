@@ -24,18 +24,6 @@ cask "omac" do
   app "Omac-#{version}-arm64/Omac.app", target: "~/Applications/Omac.app"
   binary "Omac-#{version}-arm64/Omac.app/Contents/Helpers/omac"
 
-  # Omac is signed with a Developer ID but not notarized, so Gatekeeper blocks
-  # a quarantined copy. The sandboxed step runs with a temporary HOME and no
-  # shell, so "~" in args is not expanded. The staged path holds a symlink to
-  # the moved app; the trailing slash makes xattr -r recurse into the target,
-  # not the link. A step that cannot clear quarantine fails the install.
-  postflight_steps do
-    run "/usr/bin/xattr",
-        args:           ["-dr", "com.apple.quarantine", "{{staged_path}}/Omac-{{version}}-arm64/Omac.app/"],
-        writable_paths: ["~/Applications/Omac.app"],
-        must_succeed:   true
-  end
-
   # A signal, not `quit:`: quitting sends an Apple Event, which asks the user
   # for Automation access on first use.
   uninstall signal: [["TERM", "com.evanscastonguay.omac"]]
