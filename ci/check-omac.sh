@@ -136,7 +136,15 @@ endgroup
 # ── Launch it, as a user would, then use the command ─────────────────────────
 group "Launch"
 rm -rf "$HOME/.config/omac" "$HOME/.local/state/omac"
-# `open` never returns while Gatekeeper holds a quarantined app (142 = timed out).
+# Measured 2026-09-29 on 1.4.8 (run 36569288345, macOS 14/15/26): with the ticket
+# stapled, Gatekeeper still shows its one-time "downloaded from the internet"
+# confirmation on the first open of a quarantined copy, and a runner has no one
+# to click Open, so `open` waits until it times out (142). A user clicks Open
+# once; here the flag is cleared instead, only after the assertions above
+# proved the copy notarized, so the launch measures Omac and not the dialog.
+before="$(xattr -p com.apple.quarantine "$app" 2>/dev/null || echo none)"
+echo "quarantine flag before the launch: $before (CI clears it; a user clicks Open once)"
+xattr -dr com.apple.quarantine "$app" 2>/dev/null || true
 lim 60 open "$app"; rc=$?
 if [ "$rc" = 0 ]; then ok "open ~/Applications/Omac.app"; else fail "open exited $rc (142: still waiting on Gatekeeper after 60 s)"; fi
 wait_until 20 socket_present >/dev/null
