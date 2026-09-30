@@ -1,4 +1,4 @@
-# evanscastonguay/homebrew-tap
+# cast3labs/homebrew-tap
 
 Homebrew casks for [Omac](https://github.com/evanscastonguay/omac), a tiling
 window manager for macOS that works with Omarchy's keybindings: one app, nothing
@@ -7,7 +7,7 @@ else to install. Apple silicon, macOS 14 or later.
 ## Install
 
 ```bash
-brew install --cask evanscastonguay/tap/omac
+brew install --cask cast3labs/tap/omac
 ```
 
 Use the full name. Homebrew 7 trusts a tap's cask when you name it this way;
@@ -33,7 +33,7 @@ the internet — click **Open**.
 ## Update
 
 ```bash
-brew upgrade --cask evanscastonguay/tap/omac
+brew upgrade --cask cast3labs/tap/omac
 omac quit; while pgrep -x -U "$USER" Omac >/dev/null; do sleep 0.2; done; open ~/Applications/Omac.app
 ```
 
@@ -50,7 +50,7 @@ new one, so restart Omac yourself.
 
 ```bash
 omac login off
-brew uninstall --cask --zap evanscastonguay/tap/omac
+brew uninstall --cask --zap cast3labs/tap/omac
 ```
 
 Homebrew's uninstall cannot reach the running app to turn launch at login off
@@ -67,7 +67,7 @@ The one-line installer also uses `~/Applications/Omac.app`. To hand that copy
 to Homebrew, upgrade it to the version this cask ships, then:
 
 ```bash
-brew install --cask --adopt evanscastonguay/tap/omac
+brew install --cask --adopt cast3labs/tap/omac
 ```
 
 `--adopt` refuses a copy of a different version. Afterwards, remove the

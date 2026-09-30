@@ -4,7 +4,7 @@
 # signature, an app that launches, a working `omac` command, and an uninstall
 # that leaves nothing behind.
 #
-# Usage: ci/check-omac.sh [cask]        (default: evanscastonguay/tap/omac)
+# Usage: ci/check-omac.sh [cask]        (default: cast3labs/tap/omac)
 #
 # Runs only on a throwaway runner: it installs, launches, kills and zaps Omac.
 # It refuses to start unless GITHUB_ACTIONS=true or CI=true (exit 2).
@@ -22,7 +22,7 @@ EOF
   exit 2
 fi
 
-cask="${1:-evanscastonguay/tap/omac}"
+cask="${1:-cast3labs/tap/omac}"
 root="$(cd "$(dirname "$0")/.." && pwd)"
 app="$HOME/Applications/Omac.app"
 prefix="$(brew --prefix)"

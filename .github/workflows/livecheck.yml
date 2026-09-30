@@ -30,12 +30,12 @@ jobs:
         run: brew update --quiet
 
       - name: The tap installs from this checkout
-        run: brew tap evanscastonguay/tap "$GITHUB_WORKSPACE"
+        run: brew tap cast3labs/tap "$GITHUB_WORKSPACE"
 
       - name: Open an issue if the cask is behind
         run: |
           set -euo pipefail
-          json="$(brew livecheck --cask --json evanscastonguay/tap/omac)"
+          json="$(brew livecheck --cask --json cast3labs/tap/omac)"
           echo "$json"
           current="$(jq -r '.[0].version.current' <<<"$json")"
           latest="$(jq -r '.[0].version.latest' <<<"$json")"
