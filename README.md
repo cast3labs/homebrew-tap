@@ -19,9 +19,11 @@ not start Omac. Start it, then allow it in System Settings > Privacy & Security
 
 ```bash
 open ~/Applications/Omac.app
-omac status          # accessibility and tap should both be true
-omac login on        # optional: start Omac when you log in
+omac status
 ```
+
+`omac status` should show `accessibility` and `tap` both `true`. To start Omac
+when you log in, run `omac login on`.
 
 Omac is signed with its Developer ID and, since 1.4.8, notarized by Apple, so
 Gatekeeper opens it and the cask leaves Homebrew's quarantine flag alone. The
@@ -32,9 +34,11 @@ the internet — click **Open**.
 
 ```bash
 brew upgrade --cask evanscastonguay/tap/omac
-omac quit; sleep 1   # the old version keeps running until you restart it
-open ~/Applications/Omac.app
+omac quit; while pgrep -x -U "$USER" Omac >/dev/null; do sleep 0.2; done; open ~/Applications/Omac.app
 ```
+
+The old version keeps running until you restart it: the second line quits it,
+waits until it has exited, and opens the new one.
 
 Every way to install, update, uninstall and switch (curl, this tap, the download), side by side:
 [the install matrix](https://github.com/evanscastonguay/omac#every-way-side-by-side).
@@ -45,14 +49,17 @@ new one, so restart Omac yourself.
 ## Uninstall
 
 ```bash
-omac login off       # first, if you turned it on
+omac login off
 brew uninstall --cask --zap evanscastonguay/tap/omac
 ```
 
 Homebrew's uninstall cannot reach the running app to turn launch at login off
-for you. `--zap` also removes `~/.config/omac` (your `omac.toml`),
-`~/.local/state/omac`, and Omac's preferences and caches in `~/Library`; leave
-it out to keep them.
+for you, so the first line does it while Omac still runs; if it does not print
+"launch at login: off", remove Omac in System Settings > General > Login Items.
+`--zap` also removes `~/.config/omac` (your `omac.toml`), `~/.local/state/omac`,
+`~/.local/share/omac` (the theme media Omac downloaded), and Omac's preferences
+and caches in `~/Library`; leave it out to keep them. If you used a theme, run
+`omac theme off` first: it puts your own wallpaper back.
 
 ## Coming from the curl installer
 
