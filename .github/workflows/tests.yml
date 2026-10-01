@@ -44,9 +44,9 @@ jobs:
       - name: The tap installs from this checkout
         run: |
           set -euo pipefail
-          brew tap evanscastonguay/tap "$GITHUB_WORKSPACE"
+          brew tap cast3labs/tap "$GITHUB_WORKSPACE"
           # The tap must hold exactly this commit's casks.
-          diff -r Casks "$(brew --repository evanscastonguay/tap)/Casks"
+          diff -r Casks "$(brew --repository cast3labs/tap)/Casks"
 
       - name: Every cask passes style and audit
         run: |
@@ -55,17 +55,17 @@ jobs:
           echo "casks: $casks"
           for f in Casks/*.rb; do
             [ -e "$f" ] || continue
-            token="evanscastonguay/tap/$(basename "$f" .rb)"
+            token="cast3labs/tap/$(basename "$f" .rb)"
             brew style --cask "$token"
             brew audit --cask --strict --online "$token"
           done
           if [ "$casks" -gt 0 ]; then
-            brew audit --tap=evanscastonguay/tap
+            brew audit --tap=cast3labs/tap
           fi
 
       - name: livecheck finds the latest release
         if: hashFiles('Casks/omac.rb') != ''
-        run: brew livecheck --cask evanscastonguay/tap/omac
+        run: brew livecheck --cask cast3labs/tap/omac
 
       - name: check-omac.sh refuses to run off CI
         # It kills Omac and deletes its config, so a maintainer's Mac is off limits.
@@ -79,4 +79,4 @@ jobs:
 
       - name: omac installs, launches, and uninstalls cleanly
         if: hashFiles('Casks/omac.rb') != ''
-        run: bash ci/check-omac.sh evanscastonguay/tap/omac
+        run: bash ci/check-omac.sh cast3labs/tap/omac

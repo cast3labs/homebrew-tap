@@ -1,4 +1,4 @@
-# evanscastonguay/homebrew-tap
+# cast3labs/homebrew-tap
 
 Homebrew casks for [Omac](https://github.com/evanscastonguay/omac), a tiling
 window manager for macOS that works with Omarchy's keybindings: one app, nothing
@@ -7,7 +7,7 @@ else to install. Apple silicon, macOS 14 or later.
 ## Install
 
 ```bash
-brew install --cask evanscastonguay/tap/omac
+brew install --cask cast3labs/tap/omac
 ```
 
 Use the full name. Homebrew 7 trusts a tap's cask when you name it this way;
@@ -19,9 +19,11 @@ not start Omac. Start it, then allow it in System Settings > Privacy & Security
 
 ```bash
 open ~/Applications/Omac.app
-omac status          # accessibility and tap should both be true
-omac login on        # optional: start Omac when you log in
+omac status
 ```
+
+`omac status` should show `accessibility` and `tap` both `true`. To start Omac
+when you log in, run `omac login on`.
 
 Omac is signed with its Developer ID and, since 1.4.8, notarized by Apple, so
 Gatekeeper opens it and the cask leaves Homebrew's quarantine flag alone. The
@@ -31,10 +33,12 @@ the internet — click **Open**.
 ## Update
 
 ```bash
-brew upgrade --cask evanscastonguay/tap/omac
-omac quit; sleep 1   # the old version keeps running until you restart it
-open ~/Applications/Omac.app
+brew upgrade --cask cast3labs/tap/omac
+omac quit; while pgrep -x -U "$USER" Omac >/dev/null; do sleep 0.2; done; open ~/Applications/Omac.app
 ```
+
+The old version keeps running until you restart it: the second line quits it,
+waits until it has exited, and opens the new one.
 
 Every way to install, update, uninstall and switch (curl, this tap, the download), side by side:
 [the install matrix](https://github.com/evanscastonguay/omac#every-way-side-by-side).
@@ -45,14 +49,17 @@ new one, so restart Omac yourself.
 ## Uninstall
 
 ```bash
-omac login off       # first, if you turned it on
-brew uninstall --cask --zap evanscastonguay/tap/omac
+omac login off
+brew uninstall --cask --zap cast3labs/tap/omac
 ```
 
 Homebrew's uninstall cannot reach the running app to turn launch at login off
-for you. `--zap` also removes `~/.config/omac` (your `omac.toml`),
-`~/.local/state/omac`, and Omac's preferences and caches in `~/Library`; leave
-it out to keep them.
+for you, so the first line does it while Omac still runs; if it does not print
+"launch at login: off", remove Omac in System Settings > General > Login Items.
+`--zap` also removes `~/.config/omac` (your `omac.toml`), `~/.local/state/omac`,
+`~/.local/share/omac` (the theme media Omac downloaded), and Omac's preferences
+and caches in `~/Library`; leave it out to keep them. If you used a theme, run
+`omac theme off` first: it puts your own wallpaper back.
 
 ## Coming from the curl installer
 
@@ -60,7 +67,7 @@ The one-line installer also uses `~/Applications/Omac.app`. To hand that copy
 to Homebrew, upgrade it to the version this cask ships, then:
 
 ```bash
-brew install --cask --adopt evanscastonguay/tap/omac
+brew install --cask --adopt cast3labs/tap/omac
 ```
 
 `--adopt` refuses a copy of a different version. Afterwards, remove the

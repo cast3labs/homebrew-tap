@@ -30,6 +30,7 @@ cask "omac" do
 
   zap trash: [
     "~/.config/omac",
+    "~/.local/share/omac",
     "~/.local/state/omac",
     "~/Library/Caches/com.evanscastonguay.omac",
     "~/Library/HTTPStorages/com.evanscastonguay.omac",
@@ -46,7 +47,7 @@ cask "omac" do
       omac login on
 
     After `brew upgrade`, the old version keeps running. Restart it with:
-      omac quit; sleep 1; open ~/Applications/Omac.app
+      omac quit; while pgrep -x -U "$USER" Omac >/dev/null; do sleep 0.2; done; open ~/Applications/Omac.app
 
     Before uninstalling, turn that off:
       omac login off
