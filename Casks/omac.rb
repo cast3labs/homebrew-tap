@@ -26,7 +26,7 @@ cask "omac" do
 
   # A signal, not `quit:`: quitting sends an Apple Event, which asks the user
   # for Automation access on first use. From 1.0.0 the app's id is
-  # com.cast3labs.omac; the previews (1.4.x) carry com.evanscastonguay.omac.
+  # com.cast3labs.omac; the earlier previews carry com.evanscastonguay.omac.
   uninstall signal: [
     ["TERM", "com.cast3labs.omac"],
     ["TERM", "com.evanscastonguay.omac"],
