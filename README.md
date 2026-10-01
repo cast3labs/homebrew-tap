@@ -1,6 +1,6 @@
 # cast3labs/homebrew-tap
 
-Homebrew casks for [Omac](https://github.com/evanscastonguay/omac), a tiling
+Homebrew casks for [Omac](https://github.com/cast3labs/omac), a tiling
 window manager for macOS that works with Omarchy's keybindings: one app, nothing
 else to install. Apple silicon, macOS 14 or later.
 
@@ -41,7 +41,7 @@ The old version keeps running until you restart it: the second line quits it,
 waits until it has exited, and opens the new one.
 
 Every way to install, update, uninstall and switch (curl, this tap, the download), side by side:
-[the install matrix](https://github.com/evanscastonguay/omac#every-way-side-by-side).
+[the install matrix](https://github.com/cast3labs/omac#every-way-side-by-side).
 
 Homebrew replaces the app but neither stops the running copy nor starts the
 new one, so restart Omac yourself.
@@ -103,4 +103,4 @@ fallen behind the latest Omac release.
 Omac is an independent, unofficial project. It is not affiliated with or
 endorsed by Omarchy, its creators, 37signals LLC or the Omacom Foundation.
 Omarchy and the Omarchy trademark belong to 37signals LLC and the creators of Omarchy.
-From 1.4.8, Omac is free to use under its licence terms, [EULA.fr.md](https://github.com/evanscastonguay/omac/blob/main/EULA.fr.md) (français) / [EULA.md](https://github.com/evanscastonguay/omac/blob/main/EULA.md); versions 1.4.5–1.4.7 stay MIT.
+From 1.4.8, Omac is free to use under its licence terms, [EULA.fr.md](https://github.com/cast3labs/omac/blob/main/EULA.fr.md) (français) / [EULA.md](https://github.com/cast3labs/omac/blob/main/EULA.md); the preview releases 1.4.5–1.4.7 were once offered under the MIT License.

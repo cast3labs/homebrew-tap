@@ -64,7 +64,7 @@ info="$(brew info --cask --json=v2 "$cask")" || { echo "brew info failed for $ca
 version="$(printf '%s' "$info" | jq -r '.casks[0].version')"
 sha="$(printf '%s' "$info" | jq -r '.casks[0].sha256')"
 echo "cask $cask: version $version, sha256 $sha"
-sumurl="https://github.com/evanscastonguay/omac/releases/download/v$version/Omac-arm64.zip.sha256"
+sumurl="https://github.com/cast3labs/omac/releases/download/v$version/Omac-arm64.zip.sha256"
 published="$(curl -fsSL --retry 3 "$sumurl" | awk '{ print $1 }')"
 if [ -n "$published" ] && [ "$published" = "$sha" ]; then
   ok "sha256 matches the release's Omac-arm64.zip.sha256"

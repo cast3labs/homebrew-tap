@@ -2,10 +2,10 @@ cask "omac" do
   version "1.4.8"
   sha256 "0870b106644494925c4e947e00c0c07f5f8401a397a3cebb3a3d226cc87dfef9"
 
-  url "https://github.com/evanscastonguay/omac/releases/download/v#{version}/Omac-arm64.zip"
+  url "https://github.com/cast3labs/omac/releases/download/v#{version}/Omac-arm64.zip"
   name "Omac"
   desc "Keyboard-driven tiling window manager"
-  homepage "https://github.com/evanscastonguay/omac"
+  homepage "https://github.com/cast3labs/omac"
 
   livecheck do
     url :url
