@@ -108,7 +108,7 @@ fi
 endgroup
 
 group "Notarization and signature"
-# Since 1.4.8 the app is notarized and stapled: Gatekeeper accepts a quarantined
+# Every release is notarized and stapled: Gatekeeper accepts a quarantined
 # copy on its own, so the cask leaves Homebrew's quarantine flag alone (the
 # first open asks once; the user clicks Open). Assert the ticket, not the flag.
 if spctl -a -vvv -t exec "$app" 2>&1 | grep -q 'source=Notarized Developer ID'; then

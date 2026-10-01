@@ -25,7 +25,7 @@ omac status
 `omac status` should show `accessibility` and `tap` both `true`. To start Omac
 when you log in, run `omac login on`.
 
-Omac is signed with its Developer ID and, since 1.4.8, notarized by Apple, so
+Omac is signed with its Developer ID and notarized by Apple, so
 Gatekeeper opens it and the cask leaves Homebrew's quarantine flag alone. The
 first time you open it, macOS asks once whether to open an app downloaded from
 the internet — click **Open**.
@@ -103,4 +103,4 @@ fallen behind the latest Omac release.
 Omac is an independent, unofficial project. It is not affiliated with or
 endorsed by Omarchy, its creators, 37signals LLC or the Omacom Foundation.
 Omarchy and the Omarchy trademark belong to 37signals LLC and the creators of Omarchy.
-From 1.4.8, Omac is free to use under its licence terms, [EULA.fr.md](https://github.com/cast3labs/omac/blob/main/EULA.fr.md) (français) / [EULA.md](https://github.com/cast3labs/omac/blob/main/EULA.md); the preview releases 1.4.5–1.4.7 were once offered under the MIT License.
+Omac is made by cast3labs and is free to use under its licence terms, [EULA.fr.md](https://github.com/cast3labs/omac/blob/main/EULA.fr.md) (français) / [EULA.md](https://github.com/cast3labs/omac/blob/main/EULA.md). All rights reserved: see [LICENSE](https://github.com/cast3labs/omac/blob/main/LICENSE), which also names the earlier previews once offered under the MIT License.
