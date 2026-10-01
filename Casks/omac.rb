@@ -2,10 +2,10 @@ cask "omac" do
   version "1.4.8"
   sha256 "0870b106644494925c4e947e00c0c07f5f8401a397a3cebb3a3d226cc87dfef9"
 
-  url "https://github.com/evanscastonguay/omac/releases/download/v#{version}/Omac-arm64.zip"
+  url "https://github.com/cast3labs/omac/releases/download/v#{version}/Omac-arm64.zip"
   name "Omac"
   desc "Keyboard-driven tiling window manager"
-  homepage "https://github.com/evanscastonguay/omac"
+  homepage "https://github.com/cast3labs/omac"
 
   livecheck do
     url :url
@@ -25,15 +25,24 @@ cask "omac" do
   binary "Omac-#{version}-arm64/Omac.app/Contents/Helpers/omac"
 
   # A signal, not `quit:`: quitting sends an Apple Event, which asks the user
-  # for Automation access on first use.
-  uninstall signal: [["TERM", "com.evanscastonguay.omac"]]
+  # for Automation access on first use. From 1.0.0 the app's id is
+  # com.cast3labs.omac; the previews (1.4.x) carry com.evanscastonguay.omac.
+  uninstall signal: [
+    ["TERM", "com.cast3labs.omac"],
+    ["TERM", "com.evanscastonguay.omac"],
+  ]
 
+  # Both ids' leftovers: a Mac that ran a preview keeps its files under the
+  # earlier id.
   zap trash: [
     "~/.config/omac",
     "~/.local/share/omac",
     "~/.local/state/omac",
+    "~/Library/Caches/com.cast3labs.omac",
     "~/Library/Caches/com.evanscastonguay.omac",
+    "~/Library/HTTPStorages/com.cast3labs.omac",
     "~/Library/HTTPStorages/com.evanscastonguay.omac",
+    "~/Library/Preferences/com.cast3labs.omac.plist",
     "~/Library/Preferences/com.evanscastonguay.omac.plist",
   ]
 
