@@ -167,7 +167,7 @@ echo "omac spec-path: $(printf '%s' "$out" | sed "s|$HOME|~|g")"
 if [ "$rc" = 0 ]; then ok "omac spec-path"; else fail "omac spec-path exited $rc"; fi
 # The install must not turn on launch at login: the caveats say how to.
 if lim 60 sudo sfltool dumpbtm > "$tmp/btm.txt" 2>/dev/null && [ -s "$tmp/btm.txt" ]; then
-  btm="$(grep -c 'com.evanscastonguay.omac' "$tmp/btm.txt")"
+  btm="$(grep -cE 'com\.(cast3labs|evanscastonguay)\.omac' "$tmp/btm.txt")"
   if [ "$btm" = 0 ]; then ok "no login item"; else fail "a login item exists ($btm lines in sfltool dumpbtm)"; fi
 else
   fail "sfltool dumpbtm printed nothing; cannot tell whether a login item exists"
@@ -187,9 +187,9 @@ if wait_until 10 omac_gone; then ok "Omac stopped"; else fail "Omac still runs a
 left=""
 for p in "$app" "$cli" "$prefix/Caskroom/omac" \
   "$HOME/.config/omac" "$HOME/.local/state/omac" \
-  "$HOME/Library/Caches/com.evanscastonguay.omac" \
-  "$HOME/Library/HTTPStorages/com.evanscastonguay.omac" \
-  "$HOME/Library/Preferences/com.evanscastonguay.omac.plist"; do
+  "$HOME/Library/Caches/com.cast3labs.omac" "$HOME/Library/Caches/com.evanscastonguay.omac" \
+  "$HOME/Library/HTTPStorages/com.cast3labs.omac" "$HOME/Library/HTTPStorages/com.evanscastonguay.omac" \
+  "$HOME/Library/Preferences/com.cast3labs.omac.plist" "$HOME/Library/Preferences/com.evanscastonguay.omac.plist"; do
   if [ -e "$p" ] || [ -L "$p" ]; then left="$left $(tl "$p")"; fi
 done
 if [ -z "$left" ]; then ok "nothing left behind"; else fail "left behind:$left"; fi
